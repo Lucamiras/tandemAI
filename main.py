@@ -1,7 +1,7 @@
-from langchain_helper import TandemPartner, Critic, Translator
+from src.largelanguagemodel import TandemPartner, Critic, Translator
+from src.chat import *
 import streamlit as st
 import pandas as pd
-import time
 
 
 # Init session state
@@ -15,13 +15,13 @@ if "mistakes" not in st.session_state:
     st.session_state.mistakes = []
 
 # Get user parameters
-st.title("Tandem AI")
-st.write("Welcome to the Tandem AI chatbot. You can practice your language skills here.")
+st.title("TandemLLM")
+st.write("Conversational language learning made easy.")
 user = st.text_input("Enter your name", "User")
 col1, col2, col3 = st.columns(3)
-language = col1.selectbox("Select language", ["Hungarian", "Danish", "German", "Italian", "Spanish", "French", "Portuguese", "Dutch", "Swedish", "Norwegian", "Finnish"])
-source_language = col2.selectbox("Select your native language", ["English", "Hungarian", "Danish", "German", "Italian", "Spanish", "French", "Portuguese", "Dutch", "Swedish", "Norwegian", "Finnish"])
-level = col3.selectbox("Select level", ["Beginner", "Intermediate", "Advanced"])
+language = col1.selectbox("Select language", LANGUAGES, index=1)
+source_language = col2.selectbox("Select your native language", LANGUAGES, index=0)
+level = col3.selectbox("Select level", LEVELS)
 sidebar = st.sidebar
 sidebar.title("Vocabulary")
 sidebar.write("Add new words to your vocabulary list. You can practice them later.")
@@ -38,16 +38,7 @@ critic = Critic()
 translator = Translator()
 
 # Show chat history
-for message in st.session_state.messages:
-    with st.chat_message(message[0]):
-        st.markdown(message[1])
-
-# Stream response
-def response_generator(prompt, agent):
-    response = agent.generate_response(language, level, prompt, user, st.session_state.messages)
-    for word in response.split():
-        yield word + " "
-        time.sleep(0.05)
+show_chat_history()
 
 # Accept new user input
 if prompt := st.chat_input("Ask something in {}".format(language)):
@@ -58,7 +49,8 @@ if prompt := st.chat_input("Ask something in {}".format(language)):
     
     # agent responses
     with st.chat_message('tandem_partner'):
-        tandem_response = st.write_stream(response_generator(prompt, tandem))
+        response = tandem.generate_response(language, level, prompt, user, st.session_state.messages)
+        tandem_response = st.write_stream(stream_output(response))
     st.session_state.messages.append(('ai', tandem_response))
 
     # critic responses
@@ -78,10 +70,3 @@ if len(st.session_state.vocab.items()) != 0:
 
 for mistake in st.session_state.mistakes:
     corrections.write(mistake)
-
-
-
-
-    
-
-
